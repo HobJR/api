@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Directions Example</title>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDGwiqm4yFgsP5e_HBcYamVesl4Du_Syv4&amp;libraries=drawing,places&amp;callback=initMap" async="" defer=""></script>
+  <style>
+    #map { height: 400px; width: 100%; }
+  </style>
+</head>
+<body>
+  <h1>Live Route Update</h1>
+  <div id="map"></div>
+  <script>
+    let map, directionsService, directionsRenderer;
+    const ws = new WebSocket("ws://localhost:3000"); // Replace with your public IP and port
+
+    function initMap() {
+      map = new google.maps.Map(document.getElementById('map'), {
+        zoom: 12,
+        center: { lat: 30.058, lng: 31.284 } // Center around Cairo
+      });
+
+      directionsService = new google.maps.DirectionsService();
+      directionsRenderer = new google.maps.DirectionsRenderer();
+      directionsRenderer.setMap(map);
+
+      // Initial route request
+      calculateAndDisplayRoute('Arab Academy For Science, Technology & Maritime Transport, sheraton, Egypt', 'City Center Almaza, Cairo, Egypt');
+    }
+
+    function calculateAndDisplayRoute(origin, destination) {
+      const request = {
+        origin: origin,
+        destination: destination,
+        travelMode: 'DRIVING'
+      };
+      directionsService.route(request, function(result, status) {
+        if (status === 'OK') {
+          directionsRenderer.setDirections(result);
+        } else {
+          alert('Directions request failed due to ' + status);
+        }
+      });
+    }
+
+    // Listen for destination updates from WebSocket
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.destination) {
+        const { latitude, longitude } = data.destination;
+        const origin = 'Arab Academy For Science, Technology & Maritime Transport, sheraton, Egypt'; // Static origin
+        const destination = { lat: parseFloat(latitude), lng: parseFloat(longitude) }; // Dynamic destination
+        calculateAndDisplayRoute(origin, destination);
+      }
+    };
+
+    ws.onerror = (error) => console.error("WebSocket error:", error);
+  </script>
+</body>
+</html>
